@@ -40,9 +40,9 @@ void play_game(void){
 	SDL_Event event;
 	SDL_bool play_loaded = SDL_FALSE, update_loop = SDL_TRUE, other_loop, back_hltd, resume_hltd, quit = SDL_FALSE, go_down = SDL_FALSE, game_over = SDL_FALSE;
 	SDL_Point mouse_pos;
-	int bg_speed = 0, player_fall_speed = 0;
-	int player_anim_ind = 0;
-	int time_now, time_last, snail_speed = 0, fly_speed = 0;
+	int bg_time_last, bg_time_now, snail_time_last, fly_time_last, player_time_last;
+	int player_anim_ind = 0, player_time_now;
+	int time_now, time_last, snail_time_now, fly_time_now;
 
 	rect_bg_1.x = 0;
 	rect_bg_1.y = 0;
@@ -118,11 +118,24 @@ void play_game(void){
 			SDL_FreeSurface(surface);
 
 			time_last = SDL_GetTicks();
+			bg_time_last = SDL_GetTicks();
+			snail_time_last = SDL_GetTicks();
+			fly_time_last = SDL_GetTicks();
 
 			rect_snail.x = rand() % SCREEN_WIDTH;
 			rect_snail.x += SCREEN_WIDTH;
 			rect_fly.x = rand() % SCREEN_WIDTH;
 			rect_fly.x += SCREEN_WIDTH;
+
+	
+			if (absolute(rect_fly.x - rect_snail.x) < 3 * PLAYER_WIDTH){
+				if (rect_fly.x < rect_snail.x){
+					rect_snail.x += 3 * PLAYER_WIDTH;
+				}
+				else {
+					rect_fly.x += 3 * PLAYER_WIDTH;
+				}
+			}
 
 			current_tex_player = tex_player[0];
 			current_tex_snail = tex_snail[0];
@@ -132,7 +145,9 @@ void play_game(void){
 		}
 
 		while (update_loop){
-			if (bg_speed == 0){
+			bg_time_now = SDL_GetTicks();
+			if (bg_time_now - bg_time_last >= 5){
+				bg_time_last = bg_time_now;
 				if (rect_bg_1.x < -SCREEN_WIDTH){
 					rect_bg_1.x = SCREEN_WIDTH;
 				}
@@ -159,16 +174,18 @@ void play_game(void){
 			}
 			else if (go_down) {
 				player_anim_ind = 0;
-				player_fall_speed = (player_fall_speed + 1) % PLAYER_FALL_SPEED;
-				if (player_fall_speed == 0){
+				player_time_now = SDL_GetTicks();
+				if (player_time_now - player_time_last >= 2){
+					player_time_last = player_time_now;
 					rect_player.y += 1;
 				}
 				current_tex_player = tex_player[2];
 			}
 			else {
 				player_anim_ind = 0;
-				player_fall_speed = (player_fall_speed + 1) % PLAYER_FALL_SPEED;
-				if (player_fall_speed == 0){
+				player_time_now = SDL_GetTicks();
+				if (player_time_now - player_time_last >= 2){
+					player_time_last = player_time_now;
 					--rect_player.y;
 				}
 				current_tex_player = tex_player[2];
@@ -177,31 +194,41 @@ void play_game(void){
 				}
 			}
 
-			if (rect_snail.x < -SNAIL_WIDTH){
-				snail_speed = 0;
+			if (rect_snail.x <= -SNAIL_WIDTH){
 				rect_snail.x = rand() % SCREEN_WIDTH;
 				rect_snail.x += SCREEN_WIDTH;
-				if (absolute(rect_fly.x - rect_snail.x) < 4 * PLAYER_WIDTH){
-					rect_snail.x += 4 * PLAYER_WIDTH;
+				if (absolute(rect_fly.x - rect_snail.x) < 3 * PLAYER_WIDTH){
+					if (rect_fly.x < rect_snail.x){
+						rect_snail.x += 3 * PLAYER_WIDTH;
+					}
+					else {
+						rect_fly.x += 3 * PLAYER_WIDTH;
+					}
 				}
 			}
 			else {
-				snail_speed = (snail_speed + 1) % SNAIL_SPEED;
-				if (snail_speed == 0){
+				snail_time_now = SDL_GetTicks();
+				if (snail_time_now - snail_time_last >= 2){
+					snail_time_last = snail_time_now;
 					--rect_snail.x;
 				}
 			}
-			if (rect_fly.x < -FLY_WIDTH){
-				fly_speed = 0;
+			if (rect_fly.x <= -FLY_WIDTH){
 				rect_fly.x = rand() % SCREEN_WIDTH;
 				rect_fly.x += SCREEN_WIDTH;
-				if (absolute(rect_fly.x - rect_snail.x) < 4 * PLAYER_WIDTH){
-					rect_fly.x += 4 * PLAYER_WIDTH;
+				if (absolute(rect_fly.x - rect_snail.x) < 3 * PLAYER_WIDTH){
+					if (rect_fly.x < rect_snail.x){
+						rect_snail.x += 3 * PLAYER_WIDTH;
+					}
+					else {
+						rect_fly.x += 3 * PLAYER_WIDTH;
+					}
 				}
 			}
 			else {
-				fly_speed = (fly_speed + 1) % FLY_SPEED;
-				if (fly_speed == 0){
+				fly_time_now = SDL_GetTicks();
+				if (fly_time_now - fly_time_last >= 2){
+					fly_time_last = fly_time_now;
 					--rect_fly.x;
 				}
 			}
@@ -213,7 +240,6 @@ void play_game(void){
 					break;
 			}
 
-			bg_speed = (bg_speed + 1) % BG_SPEED;
 			SDL_RenderCopy(play_renderer, tex_bg, NULL, &rect_bg_1);
 			SDL_RenderCopy(play_renderer, tex_bg, NULL, &rect_bg_2);
 			SDL_RenderCopy(play_renderer, current_tex_player, NULL, &rect_player);
@@ -229,7 +255,7 @@ void play_game(void){
 				}
 				if (event.type == SDL_KEYDOWN && event.key.keysym.scancode == SDL_SCANCODE_SPACE && rect_player.y == SCREEN_HEIGHT - 3 * PLAYER_HEIGHT / 2){
 					--rect_player.y;
-					player_fall_speed = 0;
+					player_time_last = SDL_GetTicks();
 				}
 			}
 		}
